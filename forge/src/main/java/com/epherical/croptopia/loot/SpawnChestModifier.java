@@ -4,6 +4,7 @@ import com.epherical.croptopia.CroptopiaMod;
 import com.epherical.croptopia.items.SeedItem;
 import com.google.common.base.Suppliers;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.world.item.Item;
@@ -15,16 +16,16 @@ import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
-import net.minecraftforge.common.loot.IGlobalLootModifier;
-import net.minecraftforge.common.loot.LootModifier;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.neoforge.common.loot.LootModifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
 
 
 public class SpawnChestModifier extends LootModifier {
-    public static final Supplier<Codec<SpawnChestModifier>> CODEC = Suppliers.memoize(() -> {
-        return RecordCodecBuilder.create(instance -> {
+    public static final Supplier<MapCodec<SpawnChestModifier>> CODEC = Suppliers.memoize(() -> {
+        return RecordCodecBuilder.mapCodec(instance -> {
             return codecStart(instance).apply(instance, SpawnChestModifier::new);
         });
     });
@@ -58,7 +59,7 @@ public class SpawnChestModifier extends LootModifier {
     }
 
     @Override
-    public Codec<? extends IGlobalLootModifier> codec() {
+    public MapCodec<? extends IGlobalLootModifier> codec() {
         return CODEC.get();
     }
 }

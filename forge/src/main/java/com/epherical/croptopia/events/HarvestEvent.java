@@ -2,7 +2,7 @@ package com.epherical.croptopia.events;
 
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public class HarvestEvent extends PlayerEvent {
 

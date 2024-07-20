@@ -3,8 +3,11 @@ package com.epherical.croptopia.loot;
 import com.google.common.base.Suppliers;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
@@ -16,18 +19,18 @@ import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
-import net.minecraftforge.common.loot.IGlobalLootModifier;
-import net.minecraftforge.common.loot.LootModifier;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.neoforge.common.loot.LootModifier;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
 
 public class EntityModifier extends LootModifier {
-    public static final Supplier<Codec<EntityModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.create(instance -> {
+    public static final Supplier<MapCodec<EntityModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.mapCodec(instance -> {
         return codecStart(instance).and(
                 instance.group(
-                        ForgeRegistries.ITEMS.getCodec().fieldOf("item").forGetter(o -> o.item),
+                        BuiltInRegistries.ITEM.byNameCodec().fieldOf("item").forGetter(o -> o.item),
                         Codec.INT.fieldOf("weight").forGetter(o -> o.weight),
                         Codec.INT.fieldOf("min").forGetter(o -> o.min),
                         Codec.INT.fieldOf("max").forGetter(o -> o.max)
@@ -68,7 +71,7 @@ public class EntityModifier extends LootModifier {
     }
 
     @Override
-    public Codec<? extends IGlobalLootModifier> codec() {
+    public MapCodec<? extends IGlobalLootModifier> codec() {
         return CODEC.get();
     }
 }

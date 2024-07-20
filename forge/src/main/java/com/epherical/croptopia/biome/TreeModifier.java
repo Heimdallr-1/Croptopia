@@ -1,10 +1,12 @@
 package com.epherical.croptopia.biome;
 
+import com.epherical.croptopia.CroptopiaForge;
 import com.epherical.croptopia.common.MiscNames;
 import com.epherical.croptopia.config.TreeConfiguration;
 import com.epherical.croptopia.mixin.ServerLifecycleHookAccessor;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -14,11 +16,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.common.world.BiomeGenerationSettingsBuilder;
-import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.common.world.ModifiableBiomeInfo;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.common.world.BiomeGenerationSettingsBuilder;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.common.world.BiomeModifiers;
+import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 import java.util.Collection;
 import java.util.Locale;
@@ -28,8 +31,9 @@ import static com.epherical.croptopia.CroptopiaForge.mod;
 
 public record TreeModifier(GenerationStep.Decoration step, HolderSet<PlacedFeature> placedFeatures) implements BiomeModifier {
 
-    public static final RegistryObject<Codec<? extends BiomeModifier>> SERIALIZER =
-            RegistryObject.create(createIdentifier("trees"), ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, MiscNames.MOD_ID);
+
+    public static final DeferredHolder<MapCodec<? extends BiomeModifier>, MapCodec<TreeModifier>> SERIALIZER =
+            CroptopiaForge.BIOME_SERIALIZER.register("trees", TreeModifier::makeCodec);
 
     @Override
     public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
@@ -47,12 +51,12 @@ public record TreeModifier(GenerationStep.Decoration step, HolderSet<PlacedFeatu
     }
 
     @Override
-    public Codec<? extends BiomeModifier> codec() {
+    public MapCodec<? extends BiomeModifier> codec() {
         return SERIALIZER.get();
     }
 
-    public static Codec<TreeModifier> makeCodec() {
-        return RecordCodecBuilder.create(builder -> builder.group(
+    public static MapCodec<TreeModifier> makeCodec() {
+        return RecordCodecBuilder.mapCodec(builder -> builder.group(
                 Codec.STRING.comapFlatMap(TreeModifier::generationStageFromString,
                         GenerationStep.Decoration::getName).fieldOf("generation_stage").forGetter(TreeModifier::step),
                 PlacedFeature.LIST_CODEC.fieldOf("features").forGetter(treeModifier -> treeModifier.placedFeatures)

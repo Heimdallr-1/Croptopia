@@ -2,15 +2,19 @@ package com.epherical.croptopia.loot;
 
 import com.google.common.base.Suppliers;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
-import net.minecraft.world.level.storage.loot.entries.LootTableReference;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.NestedLootTable;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraftforge.common.loot.IGlobalLootModifier;
-import net.minecraftforge.common.loot.LootModifier;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.neoforge.common.loot.LootModifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
@@ -19,7 +23,7 @@ import java.util.function.Supplier;
  * Add an additional LootTable as the modifier.
  */
 public class AdditionalTableModifier extends LootModifier {
-    public static final Supplier<Codec<AdditionalTableModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.create(instance -> {
+    public static final Supplier<MapCodec<AdditionalTableModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.mapCodec(instance -> {
         return codecStart(instance).and(
                 instance.group(
                         Codec.STRING.fieldOf("tableRef").forGetter(o -> o.tableID),
@@ -29,7 +33,10 @@ public class AdditionalTableModifier extends LootModifier {
     }));
 
     private String tableID;
-    private final LootTableReference reference;
+    private final NestedLootTable reference;
+
+
+    //NestedLootTable.lootTableReference
     private final float referChance;
 
     /**
@@ -41,7 +48,8 @@ public class AdditionalTableModifier extends LootModifier {
         super(conditionsIn);
         this.referChance = chanceToRefer;
         this.tableID = tableID;
-        this.reference = (LootTableReference) LootTableReference.lootTableReference(ResourceLocation.fromNamespaceAndPath(tableID)).build();
+        ResourceKey<LootTable> croptopia = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.fromNamespaceAndPath("croptopia", "gameplay/fishing/fish"));
+        this.reference = (NestedLootTable) NestedLootTable.lootTableReference(croptopia).build();
     }
 
     @Override
@@ -56,7 +64,7 @@ public class AdditionalTableModifier extends LootModifier {
     }
 
     @Override
-    public Codec<? extends IGlobalLootModifier> codec() {
+    public MapCodec<? extends IGlobalLootModifier> codec() {
         return CODEC.get();
     }
 }

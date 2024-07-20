@@ -3,14 +3,14 @@ package com.epherical.croptopia.listeners;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.event.village.VillagerTradesEvent;
-import net.minecraftforge.event.village.WandererTradesEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.village.VillagerTradesEvent;
+import net.neoforged.neoforge.event.village.WandererTradesEvent;
 
 import java.util.List;
 
 public class CroptopiaVillagerTrades {
-    
+
     @SubscribeEvent
     public void initVillager(VillagerTradesEvent event) {
         List<VillagerTrades.ItemListing> crops = NonNullList.create();
@@ -67,7 +67,7 @@ public class CroptopiaVillagerTrades {
             buyFromUser(crops, ItemRegistry.yam, 26, 2, 16, 0.1f);
             buyFromUser(crops, ItemRegistry.zucchini, 26, 2, 16, 0.1f);
             //event.getTrades().put(1, crops);
-            
+
             sellToUser(saplings, ItemRegistry.appleSapling, 1, 4, 12, 15, 0.1f);
             sellToUser(saplings, ItemRegistry.bananaSapling, 1, 4, 12, 15, 0.1f);
             sellToUser(saplings, ItemRegistry.orangeSapling, 1, 4, 12, 15, 0.1f);
@@ -96,7 +96,7 @@ public class CroptopiaVillagerTrades {
             sellToUser(saplings, ItemRegistry.walnutSapling, 1, 4, 12, 15, 0.1f);
             sellToUser(saplings, ItemRegistry.cinnamonSapling, 1, 4, 12, 15, 0.1f);
             //event.getTrades().put(4, crops);
-            
+
         }*/
     }
 

@@ -1,21 +1,20 @@
 package com.epherical.croptopia.biome;
 
+import com.epherical.croptopia.CroptopiaForge;
 import com.epherical.croptopia.common.MiscNames;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.common.world.BiomeGenerationSettingsBuilder;
-import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.common.world.ModifiableBiomeInfo;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
-
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.world.BiomeGenerationSettingsBuilder;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 import java.util.Locale;
 
@@ -23,9 +22,8 @@ import static com.epherical.croptopia.CroptopiaForge.createIdentifier;
 import static com.epherical.croptopia.CroptopiaForge.mod;
 
 public record SaltModifier(GenerationStep.Decoration step, Holder<PlacedFeature> features) implements BiomeModifier {
-
-    public static final RegistryObject<Codec<? extends BiomeModifier>> SERIALIZER =
-            RegistryObject.create(createIdentifier("salt"), ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, MiscNames.MOD_ID);
+    public static final DeferredHolder<MapCodec<? extends BiomeModifier>, MapCodec<SaltModifier>> SERIALIZER =
+            CroptopiaForge.BIOME_SERIALIZER.register("salt", SaltModifier::makeCodec);
 
     @Override
     public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
@@ -36,12 +34,12 @@ public record SaltModifier(GenerationStep.Decoration step, Holder<PlacedFeature>
     }
 
     @Override
-    public Codec<? extends BiomeModifier> codec() {
+    public MapCodec<? extends BiomeModifier> codec() {
         return SERIALIZER.get();
     }
 
-    public static Codec<SaltModifier> makeCodec() {
-        return RecordCodecBuilder.create(builder -> builder.group(
+    public static MapCodec<SaltModifier> makeCodec() {
+        return RecordCodecBuilder.mapCodec(builder -> builder.group(
                 Codec.STRING.comapFlatMap(SaltModifier::generationStageFromString,
                         GenerationStep.Decoration::getName).fieldOf("generation_stage").forGetter(SaltModifier::step),
                 PlacedFeature.CODEC.fieldOf("feature").forGetter(SaltModifier::features)

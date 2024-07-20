@@ -1,8 +1,8 @@
 package com.epherical.croptopia.listeners;
 
-import net.minecraftforge.event.LootTableLoadEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.LootTableLoadEvent;
 
 public class LootTableModification {
 

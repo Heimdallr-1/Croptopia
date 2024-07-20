@@ -1,20 +1,15 @@
 plugins {
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle'
-    id 'org.spongepowered.mixin'
+    id 'net.neoforged.gradle.userdev'
+    //id 'org.spongepowered.mixin'
     id 'com.github.johnrengelman.shadow' version '8.0.0'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
 }
 
-apply plugin: 'org.spongepowered.mixin'
+//apply plugin: 'org.spongepowered.mixin'
 
 repositories {
     mavenLocal()
-    maven {
-        name = "Forge"
-        url = "https://files.minecraftforge.net/maven"
-    }
     maven {
         url = 'https://maven.blamejared.com'
     }
@@ -22,7 +17,7 @@ repositories {
 
 version = project.mod_version
 group = project.maven_group
-archivesBaseName = archives_base_name + "-" + mc_ver + "-FORGE"
+archivesBaseName = archives_base_name + "-" + mc_ver + "-NEO-FORGE"
 
 configurations {
     shade
@@ -30,11 +25,16 @@ configurations {
     compileOnly.extendsFrom shadeSource
 }
 
+jarJar {
 
-mixin {
+    disable(true)
+}
+
+
+/*mixin {
     add sourceSets.main, "croptopia.refmap.json"
     config "croptopia.mixins.json"
-}
+}*/
 
 sourceSets {
     main {
@@ -47,12 +47,36 @@ sourceSets {
     }
 }
 
-minecraft {
+base {
+    archivesName = archivesBaseName
+}
+
+runs {
+    // applies to all the run configs below
+    configureEach {
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+        systemProperty 'forge.logging.console.level', 'debug'
+        modSource(sourceSets.main)
+        modSource(rootProject.sourceSets.main)
+    }
+    client {
+
+    }
+}
+
+/*neoForge {
+    version = neo_version
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-    mappings channel: 'official', version: "${mc_ver}"
-    copyIdeResources = true
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    //mappings channel: 'official', version: "${mc_ver}"
+    //copyIdeResources = true
     //mappings channel: 'parchment', version: "${project.parchmentVersion}-${project.mc_ver}"
-    runs {
+
+    *//*runs {
         client {
             workingDirectory project.file('run')
             property 'legacyClassPath', '{minecraft_classpath}'
@@ -96,8 +120,8 @@ minecraft {
                 }
             }
         }
-    }
-}
+    }*//*
+}*/
 
 processResources {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
@@ -116,11 +140,13 @@ processResources {
 
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${mc_ver}-${forge_ver}"
+    //minecraft "net.minecraftforge:forge:${mc_ver}-${forge_ver}"
+    implementation "net.neoforged:neoforge:${neo_version}"
+    compileOnly(rootProject)
     implementation(rootProject)
     shade(rootProject)
-    implementation fg.deobf("vazkii.patchouli:Patchouli:1.20.1-80-FORGE")
-    implementation (fg.deobf('com.epherical.epherolib:EpheroLib-forge:1.2.0-1.20.1'))
+    //implementation fg.deobf("vazkii.patchouli:Patchouli:1.20.1-80-FORGE")
+    implementation ('com.epherical.epherolib:EpheroLib-forge:1.2.0-1.21')
     annotationProcessor 'org.spongepowered:mixin:0.8.5-SNAPSHOT:processor'
 }
 
@@ -158,12 +184,12 @@ jar {
 
 tasks.build.dependsOn(tasks.shadowJar)
 
-reobf {
+/*reobf {
     shadowJar {}
-}
+}*/
 
-jar.finalizedBy('reobfJar')
-shadowJar.dependsOn('reobfJar')
+/*jar.finalizedBy('reobfJar')
+shadowJar.dependsOn('reobfJar')*/
 
 task sourceJar(type: Jar) {
     archiveClassifier = 'sources'
@@ -194,5 +220,12 @@ publishing {
                 password = m_pass
             }
         }
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
     }
 }

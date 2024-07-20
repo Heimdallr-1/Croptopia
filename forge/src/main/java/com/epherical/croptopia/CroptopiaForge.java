@@ -23,12 +23,14 @@ import com.epherical.croptopia.register.helpers.Utensil;
 import com.epherical.epherolib.libs.org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 import com.google.common.collect.Sets;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -44,26 +46,27 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.loot.IGlobalLootModifier;
-import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.EventListenerHelper;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.InterModComms;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegisterEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.InterModComms;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
+import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
+import net.neoforged.fml.event.lifecycle.InterModProcessEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -74,19 +77,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.epherical.croptopia.CroptopiaMod.createGroup;
+import static com.epherical.croptopia.biome.TreeModifier.SERIALIZER;
 import static com.epherical.croptopia.common.MiscNames.MOD_ID;
 
 
-// The value here should match an entry in the META-INF/mods.toml file
+// The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod("croptopia")
 public class CroptopiaForge {
     private static final Logger LOGGER = LogManager.getLogger();
 
-    public static final DeferredRegister<Codec<? extends BiomeModifier>> BIOME_SERIALIZER =
-            DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, MiscNames.MOD_ID);
+    public static final DeferredRegister<MapCodec<? extends BiomeModifier>> BIOME_SERIALIZER =
+            DeferredRegister.create(NeoForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, MiscNames.MOD_ID);
     public static final DeferredRegister<BiomeModifier> BIOME_MODIFIER =
-            DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIERS, MiscNames.MOD_ID);
-    public static final DeferredRegister<Codec<? extends IGlobalLootModifier>> GLM = DeferredRegister.create(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, MiscNames.MOD_ID);
+            DeferredRegister.create(NeoForgeRegistries.Keys.BIOME_MODIFIERS, MiscNames.MOD_ID);
+    public static final DeferredRegister<MapCodec<? extends IGlobalLootModifier>> GLM =
+            DeferredRegister.create(NeoForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, MiscNames.MOD_ID);
 
     public static CreativeModeTab CROPTOPIA_ITEM_GROUP = null;
 
@@ -97,36 +102,29 @@ public class CroptopiaForge {
 
     public static MinecraftServer server;
 
-    public CroptopiaForge() {
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+    public CroptopiaForge(IEventBus bus, ModContainer modContainer) {
+
         bus.addListener(this::setup);
         bus.addListener(this::enqueueIMC);
         bus.addListener(this::processIMC);
         bus.addListener(this::doClientStuff);
         BIOME_MODIFIER.register(bus);
         BIOME_SERIALIZER.register(bus);
-        BIOME_SERIALIZER.register("trees", TreeModifier::makeCodec);
-        BIOME_SERIALIZER.register("crops", CropModifier::makeCodec);
         BIOME_SERIALIZER.register("salt", SaltModifier::makeCodec);
         GLM.register(bus);
-       /* GLM.register("spawn_loot", SpawnChestModifier.CODEC);
-        GLM.register("entity_modifier", EntityModifier.CODEC);
-        GLM.register("table_adder", AdditionalTableModifier.CODEC);*/
-        // todo: forge bug >>> will probably need to change this back later
         GLM.register("spawn_loot", SpawnChestModifier.CODEC);
         GLM.register("entity_modifier", EntityModifier.CODEC);
         GLM.register("table_adder", AdditionalTableModifier.CODEC);
 
 
-        MinecraftForge.EVENT_BUS.addListener(CroptopiaForge::onWorldLoad);
-        MinecraftForge.EVENT_BUS.register(new LootTableModification());
-        MinecraftForge.EVENT_BUS.register(new Harvest());
-        MinecraftForge.EVENT_BUS.register(new BlockBreakEvent());
+        NeoForge.EVENT_BUS.addListener(CroptopiaForge::onWorldLoad);
+        NeoForge.EVENT_BUS.register(new LootTableModification());
+        NeoForge.EVENT_BUS.register(new Harvest());
+        NeoForge.EVENT_BUS.register(new BlockBreakEvent());
         //MinecraftForge.EVENT_BUS.addListener(this::onDatapackRegister);
         //MinecraftForge.EVENT_BUS.register(new CroptopiaVillagerTrades());
-        MinecraftForge.EVENT_BUS.register(new EntitySpawn());
+        NeoForge.EVENT_BUS.register(new EntitySpawn());
         //ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, config.config);
-        EventListenerHelper.getListenerList(PlayerInteractEvent.RightClickBlock.class);
 
         // Register ourselves for server and other game events we are interested in
         mod = new CroptopiaMod(new ForgeAdapter(), new CroptopiaConfig(HoconConfigurationLoader.builder(), "croptopia_v3.conf"));
@@ -134,17 +132,6 @@ public class CroptopiaForge {
 
     private void setup(final FMLCommonSetupEvent event) {
         mod.registerCompost();
-
-        List<ItemLike> chickenItems = new ArrayList<>(CroptopiaMod.seeds);
-        chickenItems.addAll(Arrays.stream(Chicken.FOOD_ITEMS.getItems()).map(ItemStack::getItem).collect(Collectors.toList()));
-        Chicken.FOOD_ITEMS = Ingredient.of(chickenItems.toArray(new ItemLike[0]));
-        List<Item> parrotItems = new ArrayList<>(Parrot.TAME_FOOD);
-        parrotItems.addAll(CroptopiaMod.seeds);
-        Parrot.TAME_FOOD = Sets.newHashSet(parrotItems);
-
-        List<ItemLike> pigItems = new ArrayList<>(Arrays.asList(Content.YAM, Content.SWEETPOTATO));
-        pigItems.addAll(Arrays.stream(Pig.FOOD_ITEMS.getItems()).map(ItemStack::getItem).collect(Collectors.toList()));
-        Pig.FOOD_ITEMS = Ingredient.of(pigItems.toArray(new ItemLike[0]));
     }
 
     private void doClientStuff(final FMLClientSetupEvent event) {
@@ -180,7 +167,7 @@ public class CroptopiaForge {
 
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD
     // Event bus for receiving Registry Events)
-    @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents {
 
         @SubscribeEvent
@@ -204,7 +191,7 @@ public class CroptopiaForge {
 
         @SubscribeEvent
         public static void onRegister(RegisterEvent event) {
-            if (event.getRegistryKey().equals(ForgeRegistries.Keys.ITEMS)) {
+            if (event.getRegistryKey().equals(Registries.ITEM)) {
                 CROPTOPIA_ITEM_GROUP = CreativeModeTab.builder()
                         .title(Component.translatable("itemGroup.croptopia"))
                         .displayItems((featureFlagSet, output) ->
@@ -215,7 +202,7 @@ public class CroptopiaForge {
                         .icon(() -> new ItemStack(Content.COFFEE)).build();
                 Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, ResourceLocation.fromNamespaceAndPath(MOD_ID, "croptopia"), CROPTOPIA_ITEM_GROUP);
                 Content.GUIDE = new GuideBookItem(createGroup());
-                event.register(ForgeRegistries.Keys.ITEMS, createIdentifier(ItemNamesV2.GUIDE), () -> Content.GUIDE);
+                event.register(Registries.ITEM, createIdentifier(ItemNamesV2.GUIDE), () -> Content.GUIDE);
 
 
                 Content.registerItems((id, itemSupplier) -> {
@@ -223,7 +210,7 @@ public class CroptopiaForge {
                         itemSupplier = Content.ITEM_REGISTER.getManipulations().get(id);
                     }
                     Item item = itemSupplier.get();
-                    event.register(ForgeRegistries.Keys.ITEMS, id, () -> item);
+                    event.register(Registries.ITEM, id, () -> item);
                     if (item instanceof ItemNameBlockItem) {
                         ((ItemNameBlockItem) item).registerBlocks(Item.BY_BLOCK, item);
                     }
@@ -235,13 +222,13 @@ public class CroptopiaForge {
                     return item;
                 });
             }
-            if (event.getRegistryKey().equals(ForgeRegistries.Keys.BLOCKS)) {
+            if (event.getRegistryKey().equals(Registries.BLOCK)) {
                 Content.registerBlocks((id, supplier) -> {
                     if (Content.BLOCK_REGISTER.getManipulations().containsKey(id)) {
                         supplier = Content.BLOCK_REGISTER.getManipulations().get(id);
                     }
                     Block block = supplier.get();
-                    event.register(ForgeRegistries.Keys.BLOCKS, id, () -> block);
+                    event.register(Registries.BLOCK, id, () -> block);
                     return block;
                 });
                 mod.platform().registerFlammableBlocks();
